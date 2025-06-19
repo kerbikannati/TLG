@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IVF Pregnancy Calculator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select, button {
+            padding: 8px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        #results {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        #sizeComparison img {
+            margin-top: 10px;
+          max-width: 200px; /* 👈 Add this line (adjust as needed) */
+    height: auto;      /* 👈 Ensures the aspect ratio is preserved */
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<label for="languageSelect" id="languageLabel">Language:</label>
+<select id="languageSelect" onchange="switchLanguage(this.value)">
+    <option value="en">English</option>
+    <option value="zh">中文</option>
+</select>
+
+<label for="modeSelect" id="modeLabel">Mode:</label>
+<select id="modeSelect" onchange="toggleMode()">
+    <option value="transferMode" selected>Date of Embryo Transfer</option>
+    <option value="eddMode">Estimated Due Date</option>
+</select>
+<div id="transferModeSection">
+    <label for="transferType">Embryo Transfer Type:</label>
+    <select id="transferType">
+        <option value="day3">Day 3 Embryo</option>
+        <option value="day4">Day 4 Embryo</option>
+        <option value="day5" selected>Day 5 Embryo</option>
+        <option value="day6">Day 6 Embryo</option>
+        <option value="day7">Day 7 Embryo</option>
+    </select>
+
+    <label for="transferDate">Date of Embryo Transfer:</label>
+    <input type="date" id="transferDate">
+
+    <label for="calculationType">Select Calculation:</label>
+<select id="calculationType" onchange="toggleInputFields()">
+    <option value="gestationalAge">Estimated Due Date and Current Week</option>
+    <option value="specificWeek">Date of Specific Gestational Week</option>
+    <option value="weeksPostTransfer">Date of Weeks Post Transfer</option>
+</select>
+
+    <label for="weekInput" id="weekInputLabel" style="display: none;">Enter Week Number:</label>
+    <input type="number" id="weekInput" style="display: none;">
+
+    <label for="postTransferWeeks" id="postTransferWeeksLabel" style="display: none;">Enter Weeks Post Transfer:</label>
+    <input type="number" id="postTransferWeeks" style="display: none;">
+
+    <button onclick="calculate()">Calculate</button>
+
+
+</div>
+
+<div id="eddModeSection" style="display: none;">
+    <label for="eddInput" id="eddLabel">Enter Estimated Due Date:</label>
+    <input type="date" id="eddInput">
+
+    <label for="eddEmbryoType" id="eddEmbryoLabel">Embryo Type:</label>
+    <select id="eddEmbryoType">
+        <option value="day3">Day 3 Embryo</option>
+        <option value="day4">Day 4 Embryo</option>
+        <option value="day5" selected>Day 5 Embryo</option>
+        <option value="day6">Day 6 Embryo</option>
+        <option value="day7">Day 7 Embryo</option>
+    </select>
+
+    <button onclick="calculateFromEDD()">Calculate</button>
+</div>
+    <div id="results"></div>
+    <div id="sizeComparison"></div>
+    <script>
+        function toggleInputFields() {
+            const calculationType = document.getElementById("calculationType").value;
+            document.getElementById("weekInputLabel").style.display = calculationType === "specificWeek" ? "block" : "none";
+            document.getElementById("weekInput").style.display = calculationType === "specificWeek" ? "block" : "none";
+            document.getElementById("postTransferWeeksLabel").style.display = calculationType === "weeksPostTransfer" ? "block" : "none";
+            document.getElementById("postTransferWeeks").style.display = calculationType === "weeksPostTransfer" ? "block" : "none";
+        }
+
+function toggleMode() {
+    const mode = document.getElementById("modeSelect").value;
+    document.getElementById("transferModeSection").style.display = (mode === "transferMode") ? "block" : "none";
+    document.getElementById("eddModeSection").style.display = (mode === "eddMode") ? "block" : "none";
+}
+const sizeChart = {
+    1: { size: { en: "Poppy Seed", zh: "罂粟子" }, image: "https://static.wixstatic.com/media/0f2d6f_183212d85411422f9ff115afde4bd26c~mv2.jpg" },
+    2: { size: { en: "Poppy Seed", zh: "罂粟子" }, image: "https://static.wixstatic.com/media/0f2d6f_183212d85411422f9ff115afde4bd26c~mv2.jpg" },
+    3: { size: { en: "Poppy Seed", zh: "罂粟子" }, image: "https://static.wixstatic.com/media/0f2d6f_183212d85411422f9ff115afde4bd26c~mv2.jpg" },
+    4: { size: { en: "Poppy Seed", zh: "罂粟子" }, image: "https://static.wixstatic.com/media/0f2d6f_183212d85411422f9ff115afde4bd26c~mv2.jpg" },
+    5: { size: { en: "Apple Seed", zh: "苹果籽" }, image: "https://static.wixstatic.com/media/0f2d6f_19138aa13608421a8eddd531a5d8faa3~mv2.jpg" },
+    6: { size: { en: "Sweet Pea", zh: "甜豌豆" }, image: "https://static.wixstatic.com/media/0f2d6f_20538b415a5c448fba56b452323c445e~mv2.jpg" },
+    7: { size: { en: "Blueberry", zh: "蓝莓" }, image: "https://static.wixstatic.com/media/0f2d6f_9da7bbcf6e674ab583b52af184690faf~mv2.jpg" },
+    8: { size: { en: "Raspberry", zh: "树莓" }, image: "https://static.wixstatic.com/media/0f2d6f_55e8c9a74d50424eaf06a62511e12e2c~mv2.jpg" },
+    9: { size: { en: "Green Olive", zh: "青橄榄" }, image: "https://static.wixstatic.com/media/0f2d6f_ac18d34e00a94f8b95e106474309d9f4~mv2.jpg" },
+    10: { size: { en: "Kumquat", zh: "金橘" }, image: "https://static.wixstatic.com/media/0f2d6f_ccffa95d786e4a3597d2a710b78e369c~mv2.jpg" },
+    11: { size: { en: "Fig", zh: "无花果" }, image: "https://static.wixstatic.com/media/0f2d6f_28f19dafdc2a4371b6f1e04dc1606b52~mv2.jpg" },
+    12: { size: { en: "Plum", zh: "李子" }, image: "https://static.wixstatic.com/media/0f2d6f_dfe7423c0bae4f0d92c7558daf018f5d~mv2.jpg" },
+    13: { size: { en: "Lemon", zh: "柠檬" }, image: "https://static.wixstatic.com/media/0f2d6f_92be06e523784a889059cc721b48788d~mv2.jpg" },
+    14: { size: { en: "Nectarine", zh: "油桃" }, image: "https://static.wixstatic.com/media/0f2d6f_dcea0bf6ddf74272a1274434183c4f36~mv2.jpg" },
+    15: { size: { en: "Apple", zh: "苹果" }, image: "https://static.wixstatic.com/media/0f2d6f_df15f2c063ee46d0bc4578d409150f0b~mv2.jpg" },
+    16: { size: { en: "Avocado", zh: "牛油果" }, image: "https://static.wixstatic.com/media/0f2d6f_10916eb5791b47dd8bb36b94d17e2bb4~mv2.jpg" },
+    17: { size: { en: "Pear", zh: "梨" }, image: "https://static.wixstatic.com/media/0f2d6f_525e3c4058134bb78630aef32a670766~mv2.jpg" },
+    18: { size: { en: "Bell Pepper", zh: "甜椒" }, image: "https://static.wixstatic.com/media/0f2d6f_7cc2134bee0c4905958cbeb301d267d2~mv2.jpg" },
+    19: { size: { en: "Heirloom Tomato", zh: "传家宝番茄" }, image: "https://static.wixstatic.com/media/0f2d6f_b47d783f7cc74c4bad832f6b4ef98cba~mv2.jpg" },
+    20: { size: { en: "Artichoke", zh: "朝鲜蓟" }, image: "https://static.wixstatic.com/media/0f2d6f_f0c05cdc4a434c9b986fbd73d2bd4116~mv2.jpg" },
+    21: { size: { en: "Carrot", zh: "胡萝卜" }, image: "https://static.wixstatic.com/media/0f2d6f_f2653f9140fe49c89edebd28707adfbc~mv2.jpg" },
+    22: { size: { en: "Papaya", zh: "木瓜" }, image: "https://static.wixstatic.com/media/0f2d6f_5df8f8f8ac5d458daafe9b58090fc055~mv2.jpg" },
+    23: { size: { en: "Grapefruit", zh: "柚子" }, image: "https://static.wixstatic.com/media/0f2d6f_17989437b50343fb9d1cb5490c84fa2c~mv2.jpg" },
+    24: { size: { en: "Ear of Corn", zh: "玉米棒" }, image: "https://static.wixstatic.com/media/0f2d6f_5db60a7609594af8bb6b4c573c0f5fb9~mv2.jpg" },
+    25: { size: { en: "Rutabaga", zh: "大头菜" }, image: "https://static.wixstatic.com/media/0f2d6f_812fca57b56c4279877f7ea11e66aeb6~mv2.jpg" },
+    26: { size: { en: "Lettuce", zh: "生菜" }, image: "https://static.wixstatic.com/media/0f2d6f_8029f5f9ea6249318a5b3532e9c41122~mv2.jpg" },
+    27: { size: { en: "Cauliflower", zh: "菜花" }, image: "https://static.wixstatic.com/media/0f2d6f_ca68e6bd34014126b7cdaabf845f0ce2~mv2.jpg" },
+    28: { size: { en: "Eggplant", zh: "茄子" }, image: "https://static.wixstatic.com/media/0f2d6f_540185dd8276479eaa84e3c1902c0051~mv2.jpg" },
+    29: { size: { en: "Acorn Squash", zh: "橡果南瓜" }, image: "https://static.wixstatic.com/media/0f2d6f_c7e8b7975ad749a5afc956d32d369be5~mv2.jpg" },
+    30: { size: { en: "Cabbage", zh: "卷心菜" }, image: "https://static.wixstatic.com/media/0f2d6f_9f45a3ab22e449108c5fb6d046dada38~mv2.jpg" },
+    31: { size: { en: "Coconut", zh: "椰子" }, image: "https://static.wixstatic.com/media/0f2d6f_12629652254a46aaa453fd0aa5123021~mv2.jpg" },
+    32: { size: { en: "Hicama", zh: "豆薯" }, image: "https://static.wixstatic.com/media/0f2d6f_1bd86862846d4a1da8a98c398b496efc~mv2.jpg" },
+    33: { size: { en: "Pineapple", zh: "菠萝" }, image: "https://static.wixstatic.com/media/0f2d6f_c96d5a34cc414f2e99ec595f58c383be~mv2.jpg" },
+    34: { size: { en: "Butternut Squash", zh: "胡桃南瓜" }, image: "https://static.wixstatic.com/media/0f2d6f_ec40b2bbb9ab40c0b4cfd8c6b321a1c0~mv2.jpg" },
+    35: { size: { en: "Honeydew", zh: "哈密瓜" }, image: "https://static.wixstatic.com/media/0f2d6f_1c9f792eb04c47a9ad70e8d9c98b189c~mv2.jpg" },
+    36: { size: { en: "Swiss Chard", zh: "瑞士甜菜" }, image: "https://static.wixstatic.com/media/0f2d6f_c0bf44cd5d1947999d04aa6966352aa7~mv2.jpg" },
+    37: { size: { en: "Winter Melon", zh: "冬瓜" }, image: "https://static.wixstatic.com/media/0f2d6f_142085b3e7834411a2e108c54c37d415~mv2.jpg" },
+    38: { size: { en: "Rhubarb", zh: "大黄" }, image: "https://static.wixstatic.com/media/0f2d6f_4a173107e06b4d58a34b2a611ff69d84~mv2.jpg" },
+    39: { size: { en: "Yardlong Beans", zh: "长豆" }, image: "https://static.wixstatic.com/media/0f2d6f_2622afcc56f74e49848fa53ce636d68a~mv2.jpg" },
+    40: { size: { en: "Pumpkin", zh: "南瓜" }, image: "https://static.wixstatic.com/media/0f2d6f_6629bb1b4928465887e263a393053e47~mv2.jpg" }
+};
+
+function getSizeComparison(weeks) {
+    const lang = document.getElementById("languageSelect").value;
+
+    if (sizeChart[weeks]) {
+        const isEmbryo = weeks <= 9;
+        const stage = (lang === 'zh')
+            ? (isEmbryo ? "胚胎" : "胎儿")
+            : (isEmbryo ? "Embryo" : "Fetus");
+
+        const itemName = sizeChart[weeks].size[lang] || sizeChart[weeks].size["en"];
+
+        const sentence = {
+            en: `Your ${stage} is the size of a <strong>${itemName}</strong>`,
+            zh: `您的${stage}大小相当于 <strong>${itemName}</strong>`
+        };
+
+        return `<p>${sentence[lang]}</p>
+                <img src="${sizeChart[weeks].image}" alt="${itemName}">`;
+    }
+
+    return "";
+}
+
+function formatDateUTC(date) {
+    const lang = document.getElementById("languageSelect").value;
+
+    const locales = {
+        en: "en-US",
+        zh: "zh-CN"
+    };
+
+    return date.toLocaleDateString(locales[lang], {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+	timeZone: "UTC"
+    });
+}
+
+function switchLanguage(lang) {
+    const translations = {
+        en: {
+modeOptions: [
+    "Date of Embryo Transfer", "Estimated Due Date"
+],
+            transferType: "Embryo Transfer Type:",
+            transferDate: "Date of Embryo Transfer:",
+            calculationType: "Select Calculation:",
+            weekInputLabel: "Enter Week Number:",
+            postTransferWeeksLabel: "Enter Weeks Post Transfer:",
+            button: "Calculate",
+            transferOptions: [
+                "Day 3 Embryo", "Day 4 Embryo", "Day 5 Embryo", "Day 6 Embryo", "Day 7 Embryo"
+            ],
+            calcOptions: [
+    "Estimated Due Date and Current Week", 
+    "Date of Specific Gestational Week", 
+    "Date of Weeks Post Transfer"
+]
+
+        },
+        zh: {
+modeOptions: [
+    "胚胎移植类型", "预产期"
+],
+
+            transferType: "胚胎移植类型：",
+            transferDate: "胚胎移植日期：",
+            calculationType: "选择计算方式：",
+            weekInputLabel: "输入孕周：",
+            postTransferWeeksLabel: "输入移植后周数：",
+            button: "计算",
+            transferOptions: [
+                "第3天胚胎", "第4天胚胎", "第5天胚胎", "第6天胚胎", "第7天胚胎"
+            ],
+            calcOptions: [
+                  "预产期与当前孕周", 
+    "某一孕周的日期", 
+    "移植后指定周数的日期"
+]
+        }
+    };
+
+    const t = translations[lang];
+	document.getElementById("languageLabel").innerText = (lang === "zh") ? "语言：" : "Language:";
+    document.querySelector('label[for="transferType"]').innerText = t.transferType;
+    document.querySelector('label[for="transferDate"]').innerText = t.transferDate;
+    document.querySelector('label[for="calculationType"]').innerText = t.calculationType;
+    document.getElementById("weekInputLabel").innerText = t.weekInputLabel;
+    document.getElementById("postTransferWeeksLabel").innerText = t.postTransferWeeksLabel;// Update both "Calculate" buttons (Transfer + EDD)
+const allButtons = document.querySelectorAll("button");
+allButtons.forEach(btn => {
+    if (btn.innerText.trim() === "Calculate" || btn.innerText.trim() === "计算") {
+        btn.innerText = t.button;
+    }
+});
+// Update EDD section labels
+document.getElementById("modeLabel").innerText = (lang === "zh") ? "模式：" : "Mode:";
+document.getElementById("eddLabel").innerText = (lang === "zh") ? "输入预产期：" : "Enter Estimated Due Date:";
+document.getElementById("eddEmbryoLabel").innerText = (lang === "zh") ? "胚胎类型：" : "Embryo Type:";
+
+document.getElementById("modeLabel").innerText = (lang === "zh") ? "模式：" : "Mode:";
+// Update mode selector options
+const modeSelect = document.getElementById("modeSelect");
+t.modeOptions.forEach((label, i) => {
+    modeSelect.options[i].text = label;
+});
+document.getElementById("eddLabel").innerText = (lang === "zh") ? "输入预产期：" : "Enter Estimated Due Date:";
+document.getElementById("eddEmbryoLabel").innerText = (lang === "zh") ? "胚胎类型：" : "Embryo Type:";
+
+
+    // Update select options
+    const transferSelect = document.getElementById("transferType");
+    t.transferOptions.forEach((label, i) => {
+        transferSelect.options[i].text = label;
+    });
+const eddSelect = document.getElementById("eddEmbryoType");
+t.transferOptions.forEach((label, i) => {
+    eddSelect.options[i].text = label;
+});
+
+    const calcSelect = document.getElementById("calculationType");
+    t.calcOptions.forEach((label, i) => {
+        calcSelect.options[i].text = label;
+    });
+}
+
+
+function calculate() {
+    const lang = document.getElementById("languageSelect").value;
+
+    const texts = {
+        en: {
+            weeksSince: "Weeks since embryo transfer",
+            gestationalAge: "Gestational Age",
+            dueDate: "Estimated Due Date",
+            weekLabel: "Date of Gestational Week",
+            postLabel: "Date",
+            currentAge: "Current Gestational Age"
+        },
+        zh: {
+            weeksSince: "胚胎移植以来的周数",
+            gestationalAge: "孕周",
+            dueDate: "预产期",
+            weekLabel: "孕周日期",
+            postLabel: "日期",
+            currentAge: "当前孕周"
+        }
+    };
+
+    const t = texts[lang];
+
+    const transferType = document.getElementById("transferType").value;
+    const transferDateInput = document.getElementById("transferDate").value;
+    const calculationType = document.getElementById("calculationType").value;
+    const weekInput = document.getElementById("weekInput").value;
+    const postTransferWeeks = document.getElementById("postTransferWeeks").value;
+
+    if (!transferDateInput) {
+        alert(lang === "zh" ? "请输入胚胎移植日期。" : "Please enter the embryo transfer date.");
+        return;
+    }
+
+    const transferDate = new Date(transferDateInput + "T00:00:00Z");
+    const embryoAgeDays = {
+        day3: 17,
+        day4: 18,
+        day5: 19,
+        day6: 20,
+        day7: 21
+    }[transferType] || 19;
+
+    let results = "";
+    let sizeComparison = "";
+
+    if (calculationType === "gestationalAge") {
+        const today = new Date();
+        const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+
+        const daysSinceTransfer = Math.floor((todayUTC - transferDate) / (1000 * 3600 * 24));
+        const weeksSinceTransfer = Math.floor(daysSinceTransfer / 7);
+        const remainingDays = daysSinceTransfer % 7;
+
+        const gestationalDays = daysSinceTransfer + embryoAgeDays;
+        const gestationalWeeks = Math.floor(gestationalDays / 7);
+        const gestationalRemainingDays = gestationalDays % 7;
+
+        const dueDate = new Date(transferDate);
+        dueDate.setUTCDate(dueDate.getUTCDate() + (280 - embryoAgeDays));
+
+        results = `${t.weeksSince}: ${weeksSinceTransfer} ${lang === "zh" ? "周" : "week(s)"}, ${remainingDays} ${lang === "zh" ? "天" : "day(s)"}<br>
+                   ${t.gestationalAge}: ${gestationalWeeks} ${lang === "zh" ? "周" : "week(s)"}, ${gestationalRemainingDays} ${lang === "zh" ? "天" : "day(s)"}<br>
+                   ${t.dueDate}: ${formatDateUTC(dueDate)}`;
+
+        sizeComparison = getSizeComparison(gestationalWeeks);
+
+    } else if (calculationType === "specificWeek") {
+        if (!weekInput) {
+            alert(lang === "zh" ? "请输入孕周。" : "Please enter a week number.");
+            return;
+        }
+        const weekNum = parseInt(weekInput);
+
+        const fertilizationDate = new Date(transferDate);
+        fertilizationDate.setUTCDate(fertilizationDate.getUTCDate() - embryoAgeDays + 14);
+
+        let specificWeekDate = new Date(fertilizationDate);
+        specificWeekDate.setUTCDate(specificWeekDate.getUTCDate() + ((weekNum - 2) * 7));
+
+        results = `${t.weekLabel} ${weekNum}: ${formatDateUTC(specificWeekDate)}`;
+        sizeComparison = getSizeComparison(weekNum);
+
+    } else if (calculationType === "dueDate") {
+        const dueDate = new Date(transferDate);
+        dueDate.setUTCDate(dueDate.getUTCDate() + (280 - embryoAgeDays));
+        results = `${t.dueDate}: ${formatDateUTC(dueDate)}`;
+
+        const today = new Date();
+        const conceptionDate = new Date(dueDate);
+        conceptionDate.setUTCDate(conceptionDate.getUTCDate() - 280);
+
+        const daysSinceConception = Math.floor((today - conceptionDate) / (1000 * 3600 * 24));
+        const currentGestationalWeeks = Math.floor(daysSinceConception / 7);
+        const remainingDays = daysSinceConception % 7;
+
+        results += `<br>${t.currentAge}: ${currentGestationalWeeks} ${lang === "zh" ? "周" : "week(s)"}, ${remainingDays} ${lang === "zh" ? "天" : "day(s)"}`;
+        sizeComparison = getSizeComparison(currentGestationalWeeks);
+
+    } else if (calculationType === "weeksPostTransfer") {
+        if (!postTransferWeeks) {
+            alert(lang === "zh" ? "请输入周数。" : "Please enter number of weeks.");
+            return;
+        }
+        const weeks = parseInt(postTransferWeeks);
+        const postTransferDate = new Date(transferDate);
+        postTransferDate.setUTCDate(postTransferDate.getUTCDate() + (weeks * 7));
+
+        const dueDate = new Date(transferDate);
+        dueDate.setUTCDate(dueDate.getUTCDate() + (280 - embryoAgeDays));
+
+        const gestationalWeeks = weeks;
+
+        results = `${t.postLabel} ${weeks} ${lang === "zh" ? "周" : "week(s)"} post transfer: ${formatDateUTC(postTransferDate)}<br>
+                   ${t.dueDate}: ${formatDateUTC(dueDate)}`;
+        sizeComparison = getSizeComparison(gestationalWeeks);
+    }
+
+    document.getElementById("results").innerHTML = results;
+    document.getElementById("sizeComparison").innerHTML = sizeComparison;
+}
+function calculateFromEDD() {
+    const lang = document.getElementById("languageSelect").value;
+    const embryoType = document.getElementById("eddEmbryoType").value;
+    const eddInput = document.getElementById("eddInput").value;
+
+    if (!eddInput) {
+        alert(lang === "zh" ? "请输入预产期。" : "Please enter the estimated due date.");
+        return;
+    }
+
+    const t = {
+        en: {
+            dueDate: "Estimated Due Date",
+            transferDate: "Estimated Embryo Transfer Date",
+            gestAge: "Current Gestational Age",
+            weeksSince: "Weeks since transfer"
+        },
+        zh: {
+            dueDate: "预产期",
+            transferDate: "估算的胚胎移植日期",
+            gestAge: "当前孕周",
+            weeksSince: "自移植以来的周数"
+        }
+    }[lang];
+
+    const embryoAgeDays = {
+        day3: 17,
+        day4: 18,
+        day5: 19,
+        day6: 20,
+        day7: 21
+    }[embryoType] || 19;
+
+    // Normalize input date to UTC midnight
+    const edd = new Date(eddInput + "T00:00:00Z");
+
+    const lmp = new Date(edd);
+    lmp.setUTCDate(edd.getUTCDate() - 280);
+
+    const transferDate = new Date(edd); 
+transferDate.setUTCDate(transferDate.getUTCDate() - (280 - embryoAgeDays));
+
+    const today = new Date(); // now in local time
+    const todayUTC = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+
+    const MS_PER_DAY = 1000 * 60 * 60 * 24;
+    const daysPregnant = Math.round((todayUTC - lmp) / MS_PER_DAY);
+    const gestWeeks = Math.floor(daysPregnant / 7);
+    const gestDays = daysPregnant % 7;
+
+    const daysSinceTransfer = Math.round((todayUTC - transferDate) / MS_PER_DAY);
+const weeksSinceTransfer = Math.floor(daysSinceTransfer / 7);
+const remainingTransferDays = daysSinceTransfer % 7;
+
+
+    const results = `${t.dueDate}: ${formatDateUTC(edd)}<br>
+                     ${t.transferDate}: ${formatDateUTC(transferDate)}<br>
+                     ${t.gestAge}: ${gestWeeks} ${lang === "zh" ? "周" : "week(s)"}, ${gestDays} ${lang === "zh" ? "天" : "day(s)"}<br>
+                     ${t.weeksSince}: ${weeksSinceTransfer} ${lang === "zh" ? "周" : "week(s)"}, ${remainingTransferDays} ${lang === "zh" ? "天" : "day(s)"}`;
+
+    document.getElementById("results").innerHTML = results;
+    document.getElementById("sizeComparison").innerHTML = getSizeComparison(gestWeeks);
+}
+
+    </script>
+
+</body>
+</html>
